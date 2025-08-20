@@ -143,7 +143,9 @@ jobs:
       - name: Upload Scan Results
         uses: actions/upload-artifact@v4
         with:
-           name: Inspector Vulnerability Scan Artifacts
+           # name: Inspector Vulnerability Scan Artifacts
+           # Append run number + job to avoid duplication
+           name: Inspector-Vulnerability-Scan-${{ github.run_number }}-${{ github.job }}
            path: |
              ${{ steps.inspector.outputs.inspector_scan_results }}
              ${{ steps.inspector.outputs.inspector_scan_results_csv }}
