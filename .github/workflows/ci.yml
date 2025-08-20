@@ -93,3 +93,63 @@ jobs:
          # Replace 'echo' with 'exit' if you want to fail the job.
       - name: On vulnerability threshold exceeded
         run: echo ${{ steps.inspector.outputs.vulnerability_threshold_exceeded }}
+
+      # build the image you wish to scan
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: simple-note-app:latest
+          load: true
+
+      - name: Scan built image with Inspector
+        uses: aws-actions/vulnerability-scan-github-action-for-amazon-inspector@v1
+        id: inspector-2
+        with:
+          artifact_type: 'container'
+          artifact_path: 'simple-note-app:latest' # make sure this matches the image you built
+          critical_threshold: 1
+          high_threshold: 1
+          medium_threshold: 1
+          low_threshold: 1
+          other_threshold: 1
+          # set additional arguments as needed
+
+      # display scan results in the GitHub Actions job terminal.
+      - name: Display CycloneDX SBOM (JSON)
+        run: cat ${{ steps.inspector.outputs.artifact_sbom }}
+  
+      - name: Display Inspector vulnerability scan results (JSON)
+        run: cat ${{ steps.inspector.outputs.inspector_scan_results }}
+  
+      - name: Display Inspector vulnerability scan results (CSV)
+        run: cat ${{ steps.inspector.outputs.inspector_scan_results_csv }}
+  
+      - name: Display Inspector vulnerability scan results (Markdown)
+        run: cat ${{ steps.inspector.outputs.inspector_scan_results_markdown }}
+  
+  
+       # The following steps illustrate how to
+       # upload scan results as a GitHub actions job artifact
+      - name: Upload Scan Results
+        uses: actions/upload-artifact@v4
+        with:
+           name: Inspector Vulnerability Scan Artifacts
+           path: |
+             ${{ steps.inspector.outputs.inspector_scan_results }}
+             ${{ steps.inspector.outputs.inspector_scan_results_csv }}
+             ${{ steps.inspector.outputs.artifact_sbom }}
+             ${{ steps.inspector.outputs.inspector_scan_results_markdown }}
+
+      - name: Fail job if vulnerability threshold is exceeded
+        run: echo ${{ steps.inspector.outputs.vulnerability_threshold_exceeded }}
+
+
+
+
+
+
+
+      
