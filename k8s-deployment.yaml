@@ -1,0 +1,37 @@
+# WARNING: This Kubernetes configuration is intentionally vulnerable for educational purposes.
+# Do NOT use in production.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: note-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: note-app
+  template:
+    metadata:
+      labels:
+        app: note-app
+    spec:
+      containers:
+      - name: note-app
+        image: note-flask-app:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: DB_PASSWORD
+          value: "supersecretpassword"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: note-app-service
+spec:
+  selector:
+    app: note-app
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 5000
