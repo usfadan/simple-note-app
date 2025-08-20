@@ -9,6 +9,19 @@ WORKDIR /app
 # Create a non-root user and group
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 
+# Install system deps for building Python packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    libpq-dev \
+    libssl-dev \
+    libffi-dev \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip & setuptools
+RUN pip install --upgrade pip setuptools wheel
+
 # Copy only requirements first for better caching
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
