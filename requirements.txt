@@ -1,0 +1,6 @@
+flask==2.1.0
+sqlite==3.40.0
+LangChain==0.0.316
+requests==2.32.3
+flask-cors
+gradio
