@@ -94,6 +94,13 @@ jobs:
       - name: On vulnerability threshold exceeded
         run: echo ${{ steps.inspector.outputs.vulnerability_threshold_exceeded }}
 
+      # Setup prerequisites for docker/build-push-action
+      - name: Set up docker build prereqs (QEMU)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up docker build prereqs (Buildx)
+        uses: docker/setup-buildx-action@v3
+
       # build the image you wish to scan
       - name: Build Docker image
         uses: docker/build-push-action@v5
