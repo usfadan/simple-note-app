@@ -21,6 +21,22 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Snyk Code Security
+        # You may pin to the exact commit or the version.
+        # uses: snyk/actions@b98d498629f1c368650224d6d212bf7dfa89e4bf
+        uses: snyk/actions@0.4.0
+        # uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          # Which Snyk command to run, defaults to test
+          command: code test # optional, default is test
+          # Additional arguments to pass to Snyk
+          args: --severity-threshold=medium # optional
+          # Output a snyk.json file with results if running the test command
+          json: code-report.json # optional
+        continue-on-error: true
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -28,18 +44,37 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: me-central-1
 
+      # Setup prerequisites for docker/build-push-action
+      - name: Set up docker build prereqs (QEMU)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up docker build prereqs (Buildx)
+        uses: docker/setup-buildx-action@v3
+
+      # build the image you wish to scan
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: simple-note-app:latest
+          load: true
+
       - name: Inspector Scan
         id: inspector
         uses: aws-actions/vulnerability-scan-github-action-for-amazon-inspector@v1
         with:
            # change artifact_type to either 'repository', 'container', 'binary', or 'archive'.
-           artifact_type: 'repository'
+           # artifact_type: 'repository'
+           artifact_type: 'container'           
   
            # change artifact_path to the file path or container image you would like to scan.
            # File paths should be relative to your root project directory.
            # For containers, this action accepts 'docker pull'-style references to containers,
            # such as 'alpine:latest' or a file path to an image exported as TAR using docker save.
-           artifact_path: './'
+           # artifact_path: './'
+           artifact_path: 'simple-note-app:latest' # make sure this matches the image you built
   
            # If enabled, this setting will display Inspector's vulnerability scan findings
            # as a GitHub actions step summary. See here for an example step summary:
@@ -72,7 +107,6 @@ jobs:
       - name: Display Inspector vulnerability scan results (Markdown)
         run: cat ${{ steps.inspector.outputs.inspector_scan_results_markdown }}
   
-  
        # The following steps illustrate how to
        # upload scan results as a GitHub actions job artifact
       - name: Upload Scan Results
@@ -85,75 +119,70 @@ jobs:
              ${{ steps.inspector.outputs.artifact_sbom }}
              ${{ steps.inspector.outputs.inspector_scan_results_markdown }}
   
-  
-         # This step illustrates how to add custom logic if
-         # the vulnerability threshold is exceeded. This example
-         # simply prints the 'vulnerability_threshold_exceeded' value
-         # to the GitHub actions job terminal.
          # Replace 'echo' with 'exit' if you want to fail the job.
       - name: On vulnerability threshold exceeded
         run: echo ${{ steps.inspector.outputs.vulnerability_threshold_exceeded }}
 
-      # Setup prerequisites for docker/build-push-action
-      - name: Set up docker build prereqs (QEMU)
-        uses: docker/setup-qemu-action@v3
+      # # Setup prerequisites for docker/build-push-action
+      # - name: Set up docker build prereqs (QEMU)
+      #   uses: docker/setup-qemu-action@v3
 
-      - name: Set up docker build prereqs (Buildx)
-        uses: docker/setup-buildx-action@v3
+      # - name: Set up docker build prereqs (Buildx)
+      #   uses: docker/setup-buildx-action@v3
 
-      # build the image you wish to scan
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: false
-          tags: simple-note-app:latest
-          load: true
+      # # build the image you wish to scan
+      # - name: Build Docker image
+      #   uses: docker/build-push-action@v5
+      #   with:
+      #     context: .
+      #     file: ./Dockerfile
+      #     push: false
+      #     tags: simple-note-app:latest
+      #     load: true
 
-      - name: Scan built image with Inspector
-        uses: aws-actions/vulnerability-scan-github-action-for-amazon-inspector@v1
-        id: inspector-2
-        with:
-          artifact_type: 'container'
-          artifact_path: 'simple-note-app:latest' # make sure this matches the image you built
-          critical_threshold: 1
-          high_threshold: 1
-          medium_threshold: 1
-          low_threshold: 1
-          other_threshold: 1
-          # set additional arguments as needed
+      # - name: Scan built image with Inspector
+      #   uses: aws-actions/vulnerability-scan-github-action-for-amazon-inspector@v1
+      #   id: inspector-2
+      #   with:
+      #     artifact_type: 'container'
+      #     artifact_path: 'simple-note-app:latest' # make sure this matches the image you built
+      #     critical_threshold: 1
+      #     high_threshold: 1
+      #     medium_threshold: 1
+      #     low_threshold: 1
+      #     other_threshold: 1
+      #     # set additional arguments as needed
 
-      # display scan results in the GitHub Actions job terminal.
-      - name: Display CycloneDX SBOM (JSON)
-        run: cat ${{ steps.inspector.outputs.artifact_sbom }}
+      # # display scan results in the GitHub Actions job terminal.
+      # - name: Display CycloneDX SBOM (JSON)
+      #   run: cat ${{ steps.inspector.outputs.artifact_sbom }}
   
-      - name: Display Inspector vulnerability scan results (JSON)
-        run: cat ${{ steps.inspector.outputs.inspector_scan_results }}
+      # - name: Display Inspector vulnerability scan results (JSON)
+      #   run: cat ${{ steps.inspector.outputs.inspector_scan_results }}
   
-      - name: Display Inspector vulnerability scan results (CSV)
-        run: cat ${{ steps.inspector.outputs.inspector_scan_results_csv }}
+      # - name: Display Inspector vulnerability scan results (CSV)
+      #   run: cat ${{ steps.inspector.outputs.inspector_scan_results_csv }}
   
-      - name: Display Inspector vulnerability scan results (Markdown)
-        run: cat ${{ steps.inspector.outputs.inspector_scan_results_markdown }}
+      # - name: Display Inspector vulnerability scan results (Markdown)
+      #   run: cat ${{ steps.inspector.outputs.inspector_scan_results_markdown }}
   
   
-       # The following steps illustrate how to
-       # upload scan results as a GitHub actions job artifact
-      - name: Upload Scan Results
-        uses: actions/upload-artifact@v4
-        with:
-           # name: Inspector Vulnerability Scan Artifacts
-           # Append run number + job to avoid duplication
-           name: Inspector-Vulnerability-Scan-${{ github.run_number }}-${{ github.job }}
-           path: |
-             ${{ steps.inspector.outputs.inspector_scan_results }}
-             ${{ steps.inspector.outputs.inspector_scan_results_csv }}
-             ${{ steps.inspector.outputs.artifact_sbom }}
-             ${{ steps.inspector.outputs.inspector_scan_results_markdown }}
+      #  # The following steps illustrate how to
+      #  # upload scan results as a GitHub actions job artifact
+      # - name: Upload Scan Results
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #      # name: Inspector Vulnerability Scan Artifacts
+      #      # Append run number + job to avoid duplication
+      #      name: Inspector-Vulnerability-Scan-${{ github.run_number }}-${{ github.job }}
+      #      path: |
+      #        ${{ steps.inspector.outputs.inspector_scan_results }}
+      #        ${{ steps.inspector.outputs.inspector_scan_results_csv }}
+      #        ${{ steps.inspector.outputs.artifact_sbom }}
+      #        ${{ steps.inspector.outputs.inspector_scan_results_markdown }}
 
-      - name: Fail job if vulnerability threshold is exceeded
-        run: echo ${{ steps.inspector.outputs.vulnerability_threshold_exceeded }}
+      # - name: Fail job if vulnerability threshold is exceeded
+      #   run: echo ${{ steps.inspector.outputs.vulnerability_threshold_exceeded }}
 
 
 
