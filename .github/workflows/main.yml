@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  check-branch:
+  restrict-to-merge-branch-main:
     runs-on: ubuntu-latest
     steps:
       - name: Check branch
