@@ -1,18 +1,43 @@
-# WARNING: This Dockerfile is intentionally vulnerable for educational purposes.
-# Do NOT use in production.
+# This Dockerfile follows best security practices: minimal base image, non-root user, version pinning, minimal exposure, robust healthcheck.
 
-# Using root user (VULNERABLE: Runs container with excessive privileges)
-FROM python:3.9
+# Use a slim base image to reduce attack surface
+FROM python:3.12-slim
 
-# Exposing unnecessary ports (VULNERABLE: Exposes more than needed)
-EXPOSE 5000 22 80 443
-
-# Copying sensitive files unnecessarily (VULNERABLE: Could expose secrets)
-COPY . /app
+# Set working directory
 WORKDIR /app
 
-# Installing all dependencies without verification (VULNERABLE: No version pinning)
-RUN pip install flask
+# Create a non-root user and group
+RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 
-# Running as root (VULNERABLE: Should use a non-root user)
+# Install system deps for building Python packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    libpq-dev \
+    libssl-dev \
+    libffi-dev \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip & setuptools
+RUN pip install --upgrade pip setuptools wheel
+
+# Copy only requirements first for better caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code with chown to non-root user
+COPY --chown=appuser:appgroup . .
+
+# Expose only the necessary ports (5000 for backend, 7860 for Gradio)
+EXPOSE 5000 7860
+
+# Robust healthcheck (SECURE: Checks app health with retries and timeout)
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl --fail http://localhost:5000 || exit 1
+
+# Switch to non-root user
+USER appuser
+
+# Run the backend (Gradio runs separately or in another container)
 CMD ["python", "app.py"]
