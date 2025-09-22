@@ -1,18 +1,54 @@
-name: Main Branch Protection
+# name: Main Branch Protection
+
+# on:
+#   pull_request:
+#     branches:
+#       - main
+
+# jobs:
+#   restrict-to-merge-branch-main:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Check branch
+#         run: |
+#           if [[ ${GITHUB_HEAD_REF} != develop ]] && ! [[ ${GITHUB_HEAD_REF} =~ ^hotfix/ ]]; 
+#           then
+#             echo "Error: Pull request must come from 'staging' or 'hotfix/' branch"
+#             exit 1
+#           fi
+
+name: Restrict Branch Merges
 
 on:
   pull_request:
     branches:
       - main
+      - develop
 
 jobs:
-  restrict-to-merge-branch-main:
+  restrict-merges:
     runs-on: ubuntu-latest
     steps:
-      - name: Check branch
+      - name: Check source branch rules
         run: |
-          if [[ ${GITHUB_HEAD_REF} != develop ]] && ! [[ ${GITHUB_HEAD_REF} =~ ^hotfix/ ]]; 
-          then
-            echo "Error: Pull request must come from 'staging' or 'hotfix/' branch"
-            exit 1
+          BASE_BRANCH="${{ github.base_ref }}"
+          HEAD_BRANCH="${{ github.head_ref }}"
+
+          echo "Merging $HEAD_BRANCH → $BASE_BRANCH"
+
+          if [[ "$BASE_BRANCH" == "main" ]]; then
+            if [[ "$HEAD_BRANCH" != "develop" && "$HEAD_BRANCH" != "staging" ]]; then
+              echo "❌ Only 'develop' or 'staging' can merge into 'main'."
+              exit 1
+            fi
           fi
+
+          if [[ "$BASE_BRANCH" == "develop" ]]; then
+            if [[ "$HEAD_BRANCH" != feature/* ]]; then
+              echo "❌ Only 'feature/**' branches can merge into 'develop'."
+              exit 1
+            fi
+          fi
+
+          echo "✅ Merge allowed."
+
