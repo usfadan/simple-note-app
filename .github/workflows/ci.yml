@@ -101,3 +101,16 @@ jobs:
          # Replace 'echo' with 'exit' if you want to fail the job.
       - name: On vulnerability threshold exceeded
         run: echo ${{ steps.inspector.outputs.vulnerability_threshold_exceeded }}
+
+  deploy:
+    name: Deploy to Production
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://example.com  # Optional placeholder for environment URL
+
+    steps:
+      - name: Deployment step
+        run: echo "Deployed to Prod Test."
