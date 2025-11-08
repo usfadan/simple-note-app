@@ -2,6 +2,9 @@
 # WARNING: This Flask app demonstrates both VULNERABLE and SECURE code for SQL Injection and XSS for educational purposes.
 # Do NOT use in production or on a public server. Run it locally for training only.
 
+
+
+
 from flask import Flask, request, render_template_string
 import sqlite3
 import logging
