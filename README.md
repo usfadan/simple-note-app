@@ -1,4 +1,4 @@
-# Simple Notes App
+# Simple Notes Taking App
 
 A Flask-based web application demonstrating vulnerable and secure implementations for SQL Injection and XSS, with a modern UI and note management functionality for educational purposes.
 
